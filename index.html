@@ -256,14 +256,14 @@
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-info" class="auth-info"></div>
     <div id="auth-login-form">
-      <input id="auth-email" type="email" placeholder="Email address" class="auth-input">
-      <input id="auth-pass" type="password" placeholder="Password" class="auth-input" onkeydown="if(event.key==='Enter')authLogin()">
+      <input id="auth-username" type="text" placeholder="Username" class="auth-input" autocomplete="username">
+      <input id="auth-pass" type="password" placeholder="Password" class="auth-input" onkeydown="if(event.key==='Enter')authLogin()" autocomplete="current-password">
       <button class="btn btn-primary" onclick="authLogin()" style="width:100%;justify-content:center;margin-bottom:8px;">Log In</button>
       <div class="auth-mode-toggle">No account? <span onclick="showSignup()">Create one</span></div>
     </div>
     <div id="auth-signup-form" style="display:none">
-      <input id="auth-email2" type="email" placeholder="Email address" class="auth-input">
-      <input id="auth-pass2" type="password" placeholder="Password (min 6 chars)" class="auth-input" onkeydown="if(event.key==='Enter')authSignup()">
+      <input id="auth-username2" type="text" placeholder="Username (letters, numbers, _)" class="auth-input" autocomplete="username">
+      <input id="auth-pass2" type="password" placeholder="Password (min 6 chars)" class="auth-input" onkeydown="if(event.key==='Enter')authSignup()" autocomplete="new-password">
       <button class="btn btn-primary" onclick="authSignup()" style="width:100%;justify-content:center;margin-bottom:8px;">Create Account</button>
       <div class="auth-mode-toggle">Already have one? <span onclick="showLogin()">Log in</span></div>
     </div>
@@ -959,6 +959,8 @@ const SUPABASE_KEY = 'sb_publishable_z3E4C97gk2yQkamPzcQrWA_K-jiYqkJ';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── AUTH HELPERS ─────────────────────────────────────────────────
+function usernameToEmail(u) { return `${u.toLowerCase()}@mathdeck.app`; }
+
 function showLogin() {
   document.getElementById('auth-login-form').style.display = '';
   document.getElementById('auth-signup-form').style.display = 'none';
@@ -986,22 +988,27 @@ function showAuthInfo(msg) {
 
 async function authLogin() {
   clearAuthMessages();
-  const email = document.getElementById('auth-email').value.trim();
-  const pass  = document.getElementById('auth-pass').value;
-  if (!email || !pass) return showAuthError('Please enter email and password.');
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) showAuthError(error.message);
+  const username = document.getElementById('auth-username').value.trim();
+  const pass     = document.getElementById('auth-pass').value;
+  if (!username || !pass) return showAuthError('Please enter your username and password.');
+  const { error } = await sb.auth.signInWithPassword({ email: usernameToEmail(username), password: pass });
+  if (error) showAuthError('Wrong username or password.');
 }
 
 async function authSignup() {
   clearAuthMessages();
-  const email = document.getElementById('auth-email2').value.trim();
-  const pass  = document.getElementById('auth-pass2').value;
-  if (!email || !pass) return showAuthError('Please enter email and password.');
+  const username = document.getElementById('auth-username2').value.trim();
+  const pass     = document.getElementById('auth-pass2').value;
+  if (!username || !pass) return showAuthError('Please enter a username and password.');
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return showAuthError('Username must be 3–20 characters: letters, numbers, underscore only.');
   if (pass.length < 6) return showAuthError('Password must be at least 6 characters.');
-  const { error } = await sb.auth.signUp({ email, password: pass });
+  const { error } = await sb.auth.signUp({ email: usernameToEmail(username), password: pass });
   if (error) showAuthError(error.message);
-  else showAuthInfo('Account created! Check your email to confirm, then log in.');
+  else {
+    showLogin();
+    document.getElementById('auth-username').value = username;
+    showAuthInfo(`Account "${username}" created! You can log in now.`);
+  }
 }
 
 async function authLogout() {
@@ -1059,7 +1066,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     renderDashboard();
     document.getElementById('screen-dashboard').classList.add('active');
     const badge = document.getElementById('user-badge');
-    if (badge) badge.textContent = session.user.email;
+    if (badge) badge.textContent = '👤 ' + session.user.email.replace('@mathdeck.app', '');
   } else {
     allScreens.forEach(s => s.classList.remove('active'));
     document.getElementById('screen-auth').classList.add('active');
