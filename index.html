@@ -1076,7 +1076,40 @@ async function loadState() {
   }
 }
 
-// ─── HANDLE OAUTH REDIRECT (GitHub Pages fix) ─────────────────────
+// ─── RESTORE SESSION ON LOAD ──────────────────────────────────────
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    state = defaultState();
+    setSyncIndicator('Loading…');
+    await loadState();
+    setSyncIndicator('');
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    renderDashboard();
+    document.getElementById('screen-dashboard').classList.add('active');
+
+    const email = session.user.email || '';
+    const isUsername = email.endsWith('@mathdeck.app');
+    const displayName = isUsername
+      ? email.replace('@mathdeck.app', '')
+      : (session.user.user_metadata?.full_name || email.split('@')[0]);
+    const avatarUrl = session.user.user_metadata?.avatar_url || null;
+    const card = document.getElementById('user-profile-card');
+    const avatarEl = document.getElementById('user-avatar');
+    const nameEl = document.getElementById('user-display-name');
+    if (card) card.style.display = 'flex';
+    if (nameEl) nameEl.textContent = displayName;
+    if (avatarEl) {
+      if (avatarUrl) {
+        avatarEl.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else {
+        avatarEl.textContent = displayName.charAt(0).toUpperCase();
+      }
+    }
+  }
+})();
+
+
 (async () => {
   const hash = window.location.hash;
   if (hash && hash.includes('access_token')) {
