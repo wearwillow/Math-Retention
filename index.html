@@ -1020,9 +1020,12 @@ async function authSignup() {
 }
 
 async function authGoogle() {
+  const redirectTo = window.location.hostname === 'localhost'
+    ? window.location.href.split('#')[0]
+    : 'https://wearwillow.github.io/Math-Retention/';
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo }
   });
   if (error) showAuthError(error.message);
 }
@@ -1069,6 +1072,21 @@ async function loadState() {
     state.lastStudyDate = cloud.lastStudyDate ?? null;
   }
 }
+
+// ─── HANDLE OAUTH REDIRECT (GitHub Pages fix) ─────────────────────
+(async () => {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.replace('#', ''));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if (access_token && refresh_token) {
+      await sb.auth.setSession({ access_token, refresh_token });
+      // Clean the URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+})();
 
 // ─── AUTH STATE LISTENER ──────────────────────────────────────────
 sb.auth.onAuthStateChange(async (event, session) => {
