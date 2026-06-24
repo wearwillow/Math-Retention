@@ -256,12 +256,20 @@
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-info" class="auth-info"></div>
     <div id="auth-login-form">
+      <button class="btn" onclick="authGoogle()" style="width:100%;justify-content:center;margin-bottom:16px;background:#fff;color:#222;font-weight:600;gap:10px;">
+        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;"> Continue with Google
+      </button>
+      <div class="auth-divider">— or —</div>
       <input id="auth-username" type="text" placeholder="Username" class="auth-input" autocomplete="username">
       <input id="auth-pass" type="password" placeholder="Password" class="auth-input" onkeydown="if(event.key==='Enter')authLogin()" autocomplete="current-password">
       <button class="btn btn-primary" onclick="authLogin()" style="width:100%;justify-content:center;margin-bottom:8px;">Log In</button>
       <div class="auth-mode-toggle">No account? <span onclick="showSignup()">Create one</span></div>
     </div>
     <div id="auth-signup-form" style="display:none">
+      <button class="btn" onclick="authGoogle()" style="width:100%;justify-content:center;margin-bottom:16px;background:#fff;color:#222;font-weight:600;gap:10px;">
+        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;"> Continue with Google
+      </button>
+      <div class="auth-divider">— or —</div>
       <input id="auth-username2" type="text" placeholder="Username (letters, numbers, _)" class="auth-input" autocomplete="username">
       <input id="auth-pass2" type="password" placeholder="Password (min 6 chars)" class="auth-input" onkeydown="if(event.key==='Enter')authSignup()" autocomplete="new-password">
       <button class="btn btn-primary" onclick="authSignup()" style="width:100%;justify-content:center;margin-bottom:8px;">Create Account</button>
@@ -1011,6 +1019,14 @@ async function authSignup() {
   }
 }
 
+async function authGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) showAuthError(error.message);
+}
+
 async function authLogout() {
   await sb.auth.signOut();
 }
@@ -1066,7 +1082,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
     renderDashboard();
     document.getElementById('screen-dashboard').classList.add('active');
     const badge = document.getElementById('user-badge');
-    if (badge) badge.textContent = '👤 ' + session.user.email.replace('@mathdeck.app', '');
+    const email = session.user.email || '';
+    const display = email.endsWith('@mathdeck.app') ? email.replace('@mathdeck.app', '') : email;
+    if (badge) badge.textContent = '👤 ' + display;
   } else {
     allScreens.forEach(s => s.classList.remove('active'));
     document.getElementById('screen-auth').classList.add('active');
