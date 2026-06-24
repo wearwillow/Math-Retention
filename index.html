@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Study — G7 to G10</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --surface2: #22222c;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f5;
+    --muted: #888899;
+    --accent: #7c6aff;
+    --accent2: #a78fff;
+    --green: #3ecf8e;
+    --red: #f26b6b;
+    --amber: #f5a623;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+  /* Layout */
+  #app { display: flex; min-height: 100vh; }
+  #sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 10; }
+  #main { margin-left: 260px; flex: 1; padding: 32px; max-width: 900px; }
+
+  /* Sidebar */
+  .sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-title { font-size: 13px; font-weight: 600; color: var(--accent2); letter-spacing: 0.08em; text-transform: uppercase; }
+  .sidebar-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .nav-section { padding: 8px 0; }
+  .nav-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 16px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--muted); border-left: 2px solid transparent; transition: all 0.15s; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(124,106,255,0.1); color: var(--accent2); border-left-color: var(--accent); }
+  .nav-icon { width: 16px; text-align: center; font-size: 14px; }
+
+  /* Streak bar */
+  .streak-bar { margin: 12px 16px; background: rgba(124,106,255,0.1); border: 1px solid rgba(124,106,255,0.2); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .streak-num { font-size: 22px; font-weight: 700; color: var(--accent2); }
+  .streak-label { font-size: 11px; color: var(--muted); }
+
+  /* Screen management */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Page header */
+  .page-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+  .card-sm { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
+  .stat-val { font-size: 26px; font-weight: 700; color: var(--accent2); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Topic list */
+  .topic-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
+  .topic-item:hover { border-color: var(--border2); background: var(--surface2); }
+  .topic-item.due { border-left: 3px solid var(--accent); }
+  .topic-item.overdue { border-left: 3px solid var(--amber); }
+  .topic-grade { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+  .g7 { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+  .g8 { background: rgba(124,106,255,0.15); color: #a78fff; }
+  .g9 { background: rgba(245,166,35,0.15); color: #f5a623; }
+  .g10 { background: rgba(242,107,107,0.15); color: #f26b6b; }
+  .topic-info { flex: 1; min-width: 0; }
+  .topic-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topic-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .topic-mastery { text-align: right; }
+  .mastery-pct { font-size: 15px; font-weight: 600; }
+  .mastery-bar-bg { width: 60px; height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 4px; }
+  .mastery-bar { height: 4px; border-radius: 2px; background: var(--accent); transition: width 0.3s; }
+
+  /* Buttons */
+  btn, .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-easy { background: rgba(62,207,142,0.15); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+  .btn-easy:hover { background: rgba(62,207,142,0.25); }
+  .btn-ok { background: rgba(124,106,255,0.15); color: var(--accent2); border: 1px solid rgba(124,106,255,0.3); }
+  .btn-ok:hover { background: rgba(124,106,255,0.25); }
+  .btn-hard { background: rgba(242,107,107,0.15); color: var(--red); border: 1px solid rgba(242,107,107,0.3); }
+  .btn-hard:hover { background: rgba(242,107,107,0.25); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* Quiz UI */
+  .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .quiz-progress { font-size: 13px; color: var(--muted); }
+  .quiz-topic-tag { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--surface2); color: var(--muted); }
+  .question-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
+  .question-text { font-size: 17px; line-height: 1.7; margin-bottom: 20px; }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice { padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; transition: all 0.15s; }
+  .choice:hover:not(.disabled) { border-color: var(--accent); background: rgba(124,106,255,0.08); }
+  .choice.correct { border-color: var(--green); background: rgba(62,207,142,0.1); color: var(--green); }
+  .choice.wrong { border-color: var(--red); background: rgba(242,107,107,0.1); color: var(--red); }
+  .choice.disabled { cursor: default; }
+  .fill-input { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 15px; outline: none; }
+  .fill-input:focus { border-color: var(--accent); }
+  .feedback-box { padding: 14px 16px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 14px; }
+  .feedback-correct { background: rgba(62,207,142,0.1); border: 1px solid rgba(62,207,142,0.25); color: var(--green); }
+  .feedback-wrong { background: rgba(242,107,107,0.1); border: 1px solid rgba(242,107,107,0.25); color: var(--red); }
+  .explain-text { color: var(--text); margin-top: 6px; font-size: 13px; opacity: 0.85; }
+
+  /* Rating */
+  .rating-prompt { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+
+  /* Summary */
+  .summary-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .summary-item:last-child { border-bottom: none; }
+
+  /* Mistake journal */
+  .mistake-item { padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; }
+  .mistake-q { font-size: 14px; margin-bottom: 8px; }
+  .mistake-row { display: flex; gap: 24px; margin-top: 6px; font-size: 13px; }
+  .my-ans { color: var(--red); }
+  .correct-ans { color: var(--green); }
+
+  /* Filter tabs */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; border-radius: 99px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); color: var(--muted); background: transparent; transition: all 0.15s; }
+  .tab:hover { background: var(--surface2); color: var(--text); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Progress bar */
+  .prog-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .prog-label { width: 180px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); flex-shrink: 0; }
+  .prog-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; }
+  .prog-fill { height: 6px; border-radius: 3px; background: var(--accent); transition: width 0.4s; }
+  .prog-pct { width: 36px; text-align: right; font-size: 13px; font-weight: 600; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-title { font-size: 16px; color: var(--text); margin-bottom: 6px; }
+
+  /* Timer */
+  .timer { font-size: 13px; color: var(--amber); font-weight: 600; }
+  .timer.urgent { color: var(--red); }
+
+  /* Concept box */
+  .concept-box { background: rgba(124,106,255,0.07); border: 1px solid rgba(124,106,255,0.18); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
+  .concept-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent2); margin-bottom: 8px; font-weight: 600; }
+  .concept-text { font-size: 14px; line-height: 1.75; color: var(--text); }
+
+  /* Session start */
+  .session-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 12px; cursor: pointer; transition: all 0.15s; }
+  .session-card:hover { border-color: var(--accent); }
+  .session-card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .session-card-sub { font-size: 13px; color: var(--muted); }
+
+  .badge-due { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(245,166,35,0.15); color: var(--amber); margin-left: 8px; }
+  .badge-new { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(62,207,142,0.15); color: var(--green); margin-left: 8px; }
+
+  /* Auth screen */
+  #screen-auth { max-width: 400px; margin: 80px auto; padding: 32px; }
+  .auth-logo { text-align: center; margin-bottom: 32px; }
+  .auth-logo-icon { font-size: 36px; margin-bottom: 8px; }
+  .auth-logo-title { font-size: 22px; font-weight: 700; }
+  .auth-logo-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .auth-input { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 15px; outline: none; margin-bottom: 10px; }
+  .auth-input:focus { border-color: var(--accent); }
+  .auth-error { color: var(--red); font-size: 13px; margin-bottom: 12px; display: none; padding: 10px 12px; background: rgba(242,107,107,0.1); border: 1px solid rgba(242,107,107,0.25); border-radius: var(--radius-sm); }
+  .auth-info { color: var(--green); font-size: 13px; margin-bottom: 12px; padding: 10px 12px; background: rgba(62,207,142,0.1); border: 1px solid rgba(62,207,142,0.25); border-radius: var(--radius-sm); display: none; }
+  .auth-divider { text-align: center; color: var(--muted); font-size: 13px; margin: 12px 0; }
+  .auth-mode-toggle { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .auth-mode-toggle span { color: var(--accent2); cursor: pointer; }
+  .auth-mode-toggle span:hover { text-decoration: underline; }
+  .user-badge { padding: 8px 16px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); margin-top: auto; word-break: break-all; }
+  .sync-indicator { font-size: 11px; color: var(--muted); padding: 4px 16px; }
+
+  @media (max-width: 680px) {
+    #sidebar { width: 100%; height: auto; position: relative; }
+    #main { margin-left: 0; padding: 16px; }
+    #app { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">📐 MathDeck</div>
+    <div class="sidebar-sub">G7–G10 Retention System</div>
+  </div>
+  <div class="streak-bar">
+    <div class="streak-num" id="streak-display">0 🔥</div>
+    <div class="streak-label">day streak</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Study</div>
+    <div class="nav-item active" onclick="showScreen('dashboard')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showScreen('topics')">
+      <span class="nav-icon">📚</span> All Topics
+    </div>
+    <div class="nav-item" onclick="startSession()">
+      <span class="nav-icon">▶️</span> Start Session
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Review</div>
+    <div class="nav-item" onclick="showScreen('mistakes')">
+      <span class="nav-icon">📝</span> Mistake Journal
+    </div>
+    <div class="nav-item" onclick="showScreen('progress')">
+      <span class="nav-icon">📊</span> Progress
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Data</div>
+    <div class="nav-item" onclick="exportSave()">
+      <span class="nav-icon">💾</span> Export Save
+    </div>
+    <div class="nav-item" onclick="document.getElementById('import-input').click()">
+      <span class="nav-icon">📂</span> Import Save
+    </div>
+    <div class="nav-item" onclick="confirmReset()" style="color:var(--red)">
+      <span class="nav-icon">🗑</span> Reset Progress
+    </div>
+    <div class="nav-item" onclick="authLogout()">
+      <span class="nav-icon">🚪</span> Log Out
+    </div>
+  </div>
+  <div class="sync-indicator" id="sync-indicator"></div>
+  <div class="user-badge" id="user-badge"></div>
+  <input type="file" id="import-input" accept=".json" style="display:none" onchange="importSave(event)">
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- AUTH SCREEN -->
+  <div id="screen-auth" class="screen active">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📐</div>
+      <div class="auth-logo-title">MathDeck</div>
+      <div class="auth-logo-sub">G7–G10 Retention System</div>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-info" class="auth-info"></div>
+    <div id="auth-login-form">
+      <input id="auth-email" type="email" placeholder="Email address" class="auth-input">
+      <input id="auth-pass" type="password" placeholder="Password" class="auth-input" onkeydown="if(event.key==='Enter')authLogin()">
+      <button class="btn btn-primary" onclick="authLogin()" style="width:100%;justify-content:center;margin-bottom:8px;">Log In</button>
+      <div class="auth-mode-toggle">No account? <span onclick="showSignup()">Create one</span></div>
+    </div>
+    <div id="auth-signup-form" style="display:none">
+      <input id="auth-email2" type="email" placeholder="Email address" class="auth-input">
+      <input id="auth-pass2" type="password" placeholder="Password (min 6 chars)" class="auth-input" onkeydown="if(event.key==='Enter')authSignup()">
+      <button class="btn btn-primary" onclick="authSignup()" style="width:100%;justify-content:center;margin-bottom:8px;">Create Account</button>
+      <div class="auth-mode-toggle">Already have one? <span onclick="showLogin()">Log in</span></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="screen-dashboard" class="screen active">
+    <div class="page-title">Good study day 👋</div>
+    <div class="page-sub" id="dash-date"></div>
+    <div class="grid2">
+      <div class="stat-card"><div class="stat-val" id="stat-due">0</div><div class="stat-label">Due today</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-mastered">0</div><div class="stat-label">Topics mastered (≥80%)</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-total-q">0</div><div class="stat-label">Questions answered</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-weak">0</div><div class="stat-label">Weak topics (&lt;50%)</div></div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:24px;">
+      <button class="btn btn-primary" onclick="startSession()">▶ Start Today's Session</button>
+    </div>
+
+    <div style="font-size:14px; font-weight:600; margin-bottom:12px; color:var(--muted); text-transform:uppercase; font-size:12px; letter-spacing:0.08em;">Due now</div>
+    <div id="dash-due-list"></div>
+  </div>
+
+  <!-- ALL TOPICS -->
+  <div id="screen-topics" class="screen">
+    <div class="page-title">All Topics</div>
+    <div class="page-sub">53 modules from your DepEd files</div>
+    <div class="tabs" id="grade-tabs">
+      <div class="tab active" onclick="filterTopics('all', this)">All</div>
+      <div class="tab" onclick="filterTopics('7', this)">Grade 7</div>
+      <div class="tab" onclick="filterTopics('8', this)">Grade 8</div>
+      <div class="tab" onclick="filterTopics('9', this)">Grade 9</div>
+      <div class="tab" onclick="filterTopics('10', this)">Grade 10</div>
+    </div>
+    <div id="topic-list"></div>
+  </div>
+
+  <!-- SESSION -->
+  <div id="screen-session" class="screen">
+    <div class="quiz-header">
+      <div>
+        <div class="quiz-progress" id="q-progress">Question 1 of 5</div>
+        <div class="quiz-topic-tag" id="q-topic-tag">—</div>
+      </div>
+      <div class="timer" id="q-timer"></div>
+    </div>
+    <div class="concept-box" id="concept-box" style="display:none">
+      <div class="concept-label">Quick Review</div>
+      <div class="concept-text" id="concept-text"></div>
+    </div>
+    <div class="question-box">
+      <div class="question-text" id="q-text"></div>
+      <div id="q-choices"></div>
+      <div id="q-feedback" style="display:none"></div>
+    </div>
+    <div class="btn-row" id="q-actions"></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div id="screen-summary" class="screen">
+    <div class="page-title">Session Complete ✅</div>
+    <div class="page-sub" id="summary-sub"></div>
+    <div class="card" id="summary-list"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="showScreen('dashboard'); renderDashboard()">Back to Dashboard</button>
+      <button class="btn btn-ghost" onclick="startSession()">Another Session</button>
+    </div>
+  </div>
+
+  <!-- MISTAKES -->
+  <div id="screen-mistakes" class="screen">
+    <div class="page-title">Mistake Journal</div>
+    <div class="page-sub">Every wrong answer saved here</div>
+    <div id="mistakes-list"></div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="screen-progress" class="screen">
+    <div class="page-title">Progress</div>
+    <div class="page-sub">Mastery across all topics</div>
+    <div class="tabs">
+      <div class="tab active" onclick="filterProgress('all', this)">All</div>
+      <div class="tab" onclick="filterProgress('7', this)">G7</div>
+      <div class="tab" onclick="filterProgress('8', this)">G8</div>
+      <div class="tab" onclick="filterProgress('9', this)">G9</div>
+      <div class="tab" onclick="filterProgress('10', this)">G10</div>
+    </div>
+    <div id="progress-list"></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────
+const MODULES_RAW = [
+  {g:7,q:1,m:1,title:"Sets",concept:"A set is a well-defined collection of objects called elements. Sets can be described using roster form (listing elements) or rule/set-builder form. Two sets are equal if they have exactly the same elements. A subset is a set whose elements all belong to another set."},
+  {g:7,q:1,m:3,title:"Properties on the Operations on Integers",concept:"Integers include positive numbers, negative numbers, and zero. Key properties: Commutative (a+b=b+a), Associative ((a+b)+c=a+(b+c)), Distributive (a(b+c)=ab+ac), Identity (a+0=a, a×1=a), and Inverse (a+(-a)=0). These properties hold for addition and multiplication of integers."},
+  {g:7,q:1,m:4,title:"Rational Numbers",concept:"Rational numbers are numbers that can be expressed as a fraction p/q where p and q are integers and q≠0. They include fractions, terminating decimals, and repeating decimals. To compare fractions, find a common denominator or use cross-multiplication."},
+  {g:7,q:1,m:6,title:"The World of Real Numbers",concept:"Real numbers include all rational and irrational numbers. Rational numbers can be expressed as fractions; irrational numbers cannot (e.g. √2, π). Subsets: Natural numbers ⊂ Whole numbers ⊂ Integers ⊂ Rational numbers ⊂ Real numbers. Real numbers can be arranged on a number line."},
+  {g:7,q:1,m:7,title:"Scientific Notation and Real Number Problems",concept:"Scientific notation expresses numbers as a × 10ⁿ where 1 ≤ a < 10 and n is an integer. Large numbers have positive n; small decimals have negative n. To convert: move the decimal point and count the moves. Example: 0.00035 = 3.5 × 10⁻⁴."},
+  {g:7,q:2,m:1,title:"Measurements",concept:"Measurement involves assigning a number to a quantity using a unit. SI base units include meter (length), kilogram (mass), and second (time). To convert units, use conversion factors. Significant figures indicate the precision of a measurement."},
+  {g:7,q:2,m:2,title:"The Language of Algebra",concept:"Algebra uses variables (letters) to represent unknown values. A term is a number, variable, or product of both. An expression is a combination of terms. Like terms have the same variable and exponent and can be combined. A coefficient is the numerical factor of a term."},
+  {g:7,q:2,m:3,title:"Evaluation and Operations on Algebraic Expressions",concept:"To evaluate an expression, substitute the given values of variables and compute using PEMDAS/BODMAS. Adding/subtracting polynomials: combine like terms. Remember to distribute the negative sign when subtracting polynomials."},
+  {g:7,q:2,m:4,title:"Laws of Exponents and Polynomial Operations",concept:"Laws of exponents: aᵐ × aⁿ = aᵐ⁺ⁿ, aᵐ/aⁿ = aᵐ⁻ⁿ, (aᵐ)ⁿ = aᵐⁿ, a⁰ = 1, a⁻ⁿ = 1/aⁿ. Multiplying polynomials uses the distributive property (FOIL for binomials). Dividing polynomials: divide each term or use long division."},
+  {g:7,q:2,m:5,title:"Algebraic Expressions, Equations and Inequalities",concept:"An equation states two expressions are equal. An inequality uses <, >, ≤, ≥. To solve, perform the same operation on both sides. Multiplying/dividing both sides of an inequality by a negative number reverses the inequality sign."},
+  {g:7,q:2,m:6,title:"Solving Linear Equations and Inequalities in One Variable",concept:"To solve a linear equation: isolate the variable by applying inverse operations. To solve inequalities: same steps but flip the sign when multiplying/dividing by negatives. Graph solutions on a number line; open circle = strict inequality, closed circle = or equal to."},
+  {g:7,q:2,m:7,title:"Problems Involving Linear Equation and Inequality",concept:"Word problems: identify what is unknown (use a variable), write an equation or inequality from the given information, solve, then check. Common setups: age problems, number problems, mixture problems, and distance-rate-time problems."},
+  {g:7,q:4,m:3,title:"Roots of Rational and Irrational Numbers",concept:"The square root of a number n is a value that when multiplied by itself gives n. Perfect squares have integer square roots. Cube roots ask what cubed gives n. Irrational roots like √2, √3 cannot be simplified to fractions and are approximated as decimals."},
+  {g:8,q:1,m:1,title:"Factoring Polynomials",concept:"Factoring reverses multiplication. Techniques: GCF (factor out the greatest common factor), difference of two squares (a²−b²=(a+b)(a−b)), perfect square trinomials (a²±2ab+b²=(a±b)²), and factoring general trinomials by trial or the AC method."},
+  {g:8,q:1,m:3,title:"Rectangular Coordinate System",concept:"The Cartesian plane has a horizontal x-axis and vertical y-axis intersecting at the origin (0,0). Points are written as (x,y). The four quadrants: Q1 (+,+), Q2 (−,+), Q3 (−,−), Q4 (+,−). Distance between two points: d = √((x₂−x₁)²+(y₂−y₁)²)."},
+  {g:8,q:1,m:4,title:"Graphing Linear Equations",concept:"A linear equation in two variables (ax+by=c) graphs as a straight line. Find at least two points by substituting values. Slope m = rise/run = (y₂−y₁)/(x₂−x₁). Slope-intercept form: y = mx + b, where m is slope and b is the y-intercept."},
+  {g:8,q:1,m:5,title:"Finding Equation of a Line",concept:"Three forms: Slope-intercept y=mx+b, Point-slope y−y₁=m(x−x₁), Standard form ax+by=c. Given two points: find m first, then substitute into point-slope. Parallel lines have equal slopes; perpendicular lines have slopes that are negative reciprocals of each other."},
+  {g:8,q:1,m:6,title:"Systems of Linear Equations — Graphing",concept:"A system of two linear equations can be solved by graphing both lines and finding their intersection. If lines intersect at one point: one solution (consistent independent). If parallel: no solution (inconsistent). If same line: infinitely many solutions (consistent dependent)."},
+  {g:8,q:1,m:7,title:"Systems of Linear Equations — Substitution and Elimination",concept:"Substitution: solve one equation for a variable, substitute into the other. Elimination: add or subtract equations to eliminate a variable (multiply first if needed). Always check solutions by substituting back into both original equations."},
+  {g:8,q:2,m:1,title:"Linear Inequalities in Two Variables",concept:"The graph of a linear inequality is a half-plane. First graph the boundary line (solid for ≤/≥, dashed for </>) then shade the region satisfying the inequality. Test the point (0,0) to determine which side to shade."},
+  {g:8,q:2,m:2,title:"Relations and Functions",concept:"A relation is a set of ordered pairs. A function is a relation where each input (x) has exactly one output (y). Vertical Line Test: if any vertical line hits the graph more than once, it's not a function. Domain = all x-values; Range = all y-values."},
+  {g:8,q:2,m:3,title:"Domain, Range and Graphs of Functions",concept:"To find domain of a function: identify all valid inputs (exclude values causing division by zero or negative square roots). Range: all possible outputs. Function notation: f(x) means the output when input is x. Linear functions graph as straight lines."},
+  {g:8,q:2,m:4,title:"If-then Statements: Hypothesis and Conclusion",concept:"A conditional statement has the form 'If P, then Q' where P is the hypothesis and Q is the conclusion. Converse: If Q, then P. Inverse: If not P, then not Q. Contrapositive: If not Q, then not P. The contrapositive is always logically equivalent to the original."},
+  {g:8,q:2,m:5,title:"Converse, Inverse and Contrapositive",concept:"Given 'If P then Q': Converse swaps P and Q; Inverse negates both; Contrapositive negates and swaps. A biconditional (P⟺Q) is true when both the conditional and its converse are true. Truth tables help determine when statements are true or false."},
+  {g:8,q:2,m:6,title:"Inductive and Deductive Reasoning",concept:"Inductive reasoning: concluding a general rule from specific examples (may not always be correct). Deductive reasoning: applying general rules to specific cases (if premises are true, conclusion must be true). Mathematical proofs use deductive reasoning."},
+  {g:9,q:1,m:1,title:"Solving Quadratic Equations",concept:"A quadratic equation has the form ax²+bx+c=0 (a≠0). Methods to solve: (1) Factoring, (2) Extracting square roots (for ax²=c form), (3) Completing the square, (4) Quadratic formula: x = (−b ± √(b²−4ac)) / 2a. Always set the equation to zero first."},
+  {g:9,q:1,m:2,title:"Nature of Roots of a Quadratic Equation",concept:"The discriminant D = b²−4ac tells the nature of roots. If D > 0: two distinct real roots. If D = 0: one repeated real root. If D < 0: no real roots (two complex roots). If D is a perfect square, the roots are rational; otherwise irrational."},
+  {g:9,q:1,m:3,title:"Equations Transformable into Quadratic Equations",concept:"Some equations can be transformed into quadratic form: rational equations (multiply by LCD), radical equations (isolate and square both sides), and equations with substitution. Always verify solutions in the original equation — squaring can introduce extraneous roots."},
+  {g:9,q:1,m:4,title:"Quadratic Inequalities",concept:"To solve a quadratic inequality: find the roots of the related equation, plot on a number line, test intervals to determine which satisfy the inequality. If a>0 and inequality is <0, the solution is between the roots. If >0, solution is outside the roots."},
+  {g:9,q:1,m:5,title:"Quadratic Functions",concept:"A quadratic function has the form f(x) = ax²+bx+c or vertex form f(x) = a(x−h)²+k. Vertex (h,k) is the minimum if a>0 (opens up) or maximum if a<0 (opens down). Axis of symmetry: x = −b/2a. The vertex is also at x = −b/2a."},
+  {g:9,q:1,m:6,title:"Graph of a Quadratic Function",concept:"The graph of f(x)=ax²+bx+c is a parabola. Key features: vertex, axis of symmetry, x-intercepts (roots), y-intercept (set x=0). Opening direction depends on sign of a. To graph: find vertex, plot a few points, sketch the symmetric curve."},
+  {g:9,q:1,m:7,title:"Equation of a Quadratic Function",concept:"To find the quadratic function given its graph: use vertex form f(x)=a(x−h)²+k and substitute the vertex and another known point to find a. Or use three points and set up a system of equations. x-intercepts give factors: f(x) = a(x−r₁)(x−r₂)."},
+  {g:9,q:2,m:1,title:"Variations",concept:"Direct variation: y=kx (y increases as x increases). Inverse variation: y=k/x (y decreases as x increases). Joint variation: y=kxz. Combined variation mixes direct and inverse. In all cases, k is the constant of variation, found by substituting known values."},
+  {g:9,q:2,m:2,title:"Word Problems Involving Variations",concept:"Identify the type of variation from key words: 'directly' → y=kx, 'inversely' → y=k/x, 'jointly' → y=kxz. Step 1: find k using given values. Step 2: write the equation. Step 3: solve for the unknown. Always include units in your answer."},
+  {g:9,q:2,m:3,title:"Laws on Exponents",concept:"Positive exponents: aⁿ = a×a×...×a (n times). Negative exponents: a⁻ⁿ = 1/aⁿ. Rational exponents: a^(m/n) = ⁿ√(aᵐ). All previous exponent laws apply. To simplify: apply laws step by step, convert to positive exponents in final answer."},
+  {g:9,q:2,m:4,title:"Rational Exponents and Radicals",concept:"Radical form: ⁿ√a = a^(1/n). To convert between forms: a^(m/n) = ⁿ√(aᵐ). Simplify radicals by factoring out perfect powers. Like radicals (same index and radicand) can be added/subtracted. Rationalize the denominator by multiplying by appropriate radical."},
+  {g:9,q:2,m:5,title:"Simplifying and Operating on Radicals",concept:"Simplifying: factor the radicand and pull out perfect nth powers. Multiplying radicals: ⁿ√a × ⁿ√b = ⁿ√(ab). Dividing: ⁿ√a / ⁿ√b = ⁿ√(a/b). Adding/subtracting: simplify first, then combine like radicals. Rationalizing: eliminate radicals from the denominator."},
+  {g:9,q:2,m:6,title:"Solving Problems Involving Radical Equations",concept:"To solve a radical equation: isolate the radical, raise both sides to the power equal to the index, solve the resulting equation, and always check for extraneous solutions (substituting back may show invalid results)."},
+  {g:10,q:1,m:1,title:"Sequence and Arithmetic Sequence",concept:"A sequence is an ordered list of numbers. An arithmetic sequence has a common difference d between consecutive terms. Formula: aₙ = a₁ + (n−1)d. To find d: subtract any term from the next. Arithmetic sequences increase (d>0), decrease (d<0), or stay constant (d=0)."},
+  {g:10,q:1,m:2,title:"Arithmetic Means and Arithmetic Series",concept:"Arithmetic means are terms inserted between two values to form an arithmetic sequence. Arithmetic series is the sum of an arithmetic sequence: Sₙ = n/2 × (a₁ + aₙ) or Sₙ = n/2 × (2a₁ + (n−1)d). Identify n, a₁, and either aₙ or d to compute the sum."},
+  {g:10,q:1,m:3,title:"Geometric Sequence",concept:"A geometric sequence has a constant ratio r between consecutive terms. Formula: aₙ = a₁ × rⁿ⁻¹. To find r: divide any term by the previous one. If |r|>1: sequence grows. If |r|<1: sequence shrinks. If r<0: terms alternate signs."},
+  {g:10,q:1,m:4,title:"Geometric Means and Geometric Series",concept:"Geometric means are terms between two values in a geometric sequence. Geometric series sum: Sₙ = a₁(1−rⁿ)/(1−r) for r≠1. Infinite geometric series converges when |r|<1: S = a₁/(1−r). If |r|≥1, the series diverges (no finite sum)."},
+  {g:10,q:3,m:5,title:"Problem Solving on Sequences",concept:"Apply arithmetic sequence for constant differences (salary increases, simple interest), geometric sequence for constant ratios (population growth, compound interest). Identify a₁ (first term), r or d (ratio/difference), and n (term number or number of terms)."},
+  {g:10,q:1,m:6,title:"Division of Polynomials, Remainder and Factor Theorems",concept:"Long division of polynomials: divide, multiply, subtract, bring down — repeat. Remainder theorem: when p(x) is divided by (x−c), the remainder = p(c). Factor theorem: (x−c) is a factor of p(x) if and only if p(c) = 0. Synthetic division is a shortcut for dividing by (x−c)."},
+  {g:10,q:1,m:7,title:"Solving Problems Involving Polynomials",concept:"To find zeros of a polynomial: use the rational root theorem (possible rational roots: ±factors of constant / factors of leading coefficient), then test with synthetic division. Once a factor is found, divide it out and factor the quotient. Repeat until fully factored."},
+  {g:10,q:2,m:1,title:"Rational Algebraic Expressions",concept:"A rational expression is a fraction where numerator and denominator are polynomials. To simplify: factor both and cancel common factors. Domain: all real values except those making the denominator zero. Always state restrictions on the variable."},
+  {g:10,q:2,m:2,title:"Polynomial Functions",concept:"A polynomial function has the form f(x) = aₙxⁿ + ... + a₁x + a₀. The degree is n (the highest exponent). End behavior: determined by the leading term. Odd degree with positive leading coefficient: rises right, falls left. Even degree positive: rises both sides."},
+  {g:10,q:2,m:3,title:"Central and Inscribed Angles",concept:"A central angle has its vertex at the center of a circle; its measure equals the intercepted arc. An inscribed angle has its vertex on the circle; its measure is half the intercepted arc. Inscribed angle theorem: inscribed angles intercepting the same arc are equal."},
+  {g:10,q:2,m:4,title:"Angles Formed by Secants and Tangents",concept:"Angle formed by two chords (inside circle): angle = ½(sum of intercepted arcs). Angle formed outside the circle by two secants, two tangents, or secant and tangent: angle = ½(difference of intercepted arcs). A tangent is perpendicular to the radius at the point of tangency."},
+  {g:10,q:2,m:5,title:"Sector, Segment, Secants and Tangent Segments",concept:"Sector area = (θ/360°) × πr². Arc length = (θ/360°) × 2πr. Segment area = sector area − triangle area. Power of a Point: for two chords intersecting inside, (chord₁ part A)(chord₁ part B) = (chord₂ part A)(chord₂ part B). For external segments: external × whole = external × whole."},
+  {g:10,q:2,m:6,title:"Distance Formula",concept:"Distance between (x₁,y₁) and (x₂,y₂): d = √((x₂−x₁)²+(y₂−y₁)²). Midpoint formula: M = ((x₁+x₂)/2, (y₁+y₂)/2). These come from the Pythagorean theorem. Used to prove properties of geometric figures on the coordinate plane."},
+  {g:10,q:2,m:7,title:"Equation of a Circle",concept:"Standard form: (x−h)²+(y−k)²=r², where (h,k) is the center and r is the radius. General form: x²+y²+Dx+Ey+F=0. To convert to standard form, complete the square for both x and y. A circle with center at origin: x²+y²=r²."},
+];
+
+// Questions bank per topic
+const QUESTIONS = {
+  "7-1-1": [
+    {type:"mc",q:"Which of the following correctly describes the set of vowels in the English alphabet?",choices:["A = {a, e, i, o, u}","A = {b, c, d, f, g}","A = {1, 2, 3, 4, 5}","A = {a, b, c, d, e}"],ans:0,explain:"Vowels in the English alphabet are a, e, i, o, u."},
+    {type:"mc",q:"If A = {1,2,3} and B = {1,2,3,4,5}, which statement is true?",choices:["A = B","A ⊂ B","B ⊂ A","A and B are disjoint"],ans:1,explain:"A is a subset of B because every element in A is also in B, but B has more elements so A ≠ B."},
+    {type:"fill",q:"The set containing no elements is called the _____ set.",ans:"empty",explain:"An empty set (or null set) has no elements, denoted by {} or ∅."},
+  ],
+  "7-1-3": [
+    {type:"mc",q:"Which property is shown by: 5 × (3 + 2) = 5 × 3 + 5 × 2?",choices:["Commutative","Associative","Distributive","Identity"],ans:2,explain:"The distributive property: a(b+c) = ab + ac."},
+    {type:"mc",q:"What is the additive inverse of −8?",choices:["8","−8","1/8","0"],ans:0,explain:"The additive inverse of a number is what you add to get 0. −8 + 8 = 0."},
+    {type:"fill",q:"The product of any integer and 1 equals the integer itself. This is the _____ property of multiplication.",ans:"identity",explain:"The multiplicative identity property: a × 1 = a."},
+  ],
+  "7-1-4": [
+    {type:"mc",q:"Which of the following is NOT a rational number?",choices:["3/4","0.333...","√2","−7"],ans:2,explain:"√2 cannot be expressed as a fraction of two integers, so it's irrational."},
+    {type:"mc",q:"Which fraction is greater: 3/4 or 5/7?",choices:["3/4","5/7","They are equal","Cannot determine"],ans:0,explain:"LCD of 4 and 7 is 28. 3/4 = 21/28, 5/7 = 20/28. So 3/4 > 5/7."},
+    {type:"fill",q:"A rational number written as a fraction has a nonzero _____.",ans:"denominator",explain:"By definition, a rational number p/q requires q ≠ 0."},
+  ],
+  "7-1-6": [
+    {type:"mc",q:"Which set of numbers contains only irrational numbers?",choices:["{ √4, √9, √16 }","{ √2, √3, π }","{ 0.5, 1/3, 2 }","{ −3, 0, 7 }"],ans:1,explain:"√2, √3, and π are all irrational — they cannot be written as fractions of integers."},
+    {type:"mc",q:"What is the correct order of subsets from smallest to largest set?",choices:["Integers ⊂ Whole ⊂ Natural ⊂ Rational","Natural ⊂ Whole ⊂ Integers ⊂ Rational","Rational ⊂ Integers ⊂ Whole ⊂ Natural","Whole ⊂ Natural ⊂ Integers ⊂ Rational"],ans:1,explain:"Natural (counting) numbers ⊂ Whole numbers ⊂ Integers ⊂ Rational numbers ⊂ Real numbers."},
+    {type:"fill",q:"The union of rational and irrational numbers forms the set of _____ numbers.",ans:"real",explain:"Real numbers = rational numbers ∪ irrational numbers."},
+  ],
+  "7-1-7": [
+    {type:"mc",q:"What is 0.00042 in scientific notation?",choices:["4.2 × 10⁻⁴","4.2 × 10⁴","42 × 10⁻⁵","0.42 × 10⁻³"],ans:0,explain:"Move the decimal 4 places right to get 4.2, so the exponent is −4: 4.2 × 10⁻⁴."},
+    {type:"mc",q:"Which is larger: 3.2 × 10⁵ or 8.1 × 10⁴?",choices:["3.2 × 10⁵","8.1 × 10⁴","They are equal","Cannot determine"],ans:0,explain:"3.2 × 10⁵ = 320,000 and 8.1 × 10⁴ = 81,000. So 3.2 × 10⁵ is larger."},
+    {type:"fill",q:"In scientific notation, the number a in a × 10ⁿ must satisfy 1 ≤ a < _____.",ans:"10",explain:"Scientific notation requires the coefficient to be at least 1 and less than 10."},
+  ],
+  "8-1-1": [
+    {type:"mc",q:"Factor completely: x² − 9",choices:["(x−3)²","(x+3)(x−3)","(x−9)(x+1)","(x+9)(x−1)"],ans:1,explain:"x²−9 is a difference of two squares: (x+3)(x−3)."},
+    {type:"mc",q:"What is the GCF of 12x³y² and 8x²y⁴?",choices:["4x²y²","12x³y⁴","4xy","8x²y²"],ans:0,explain:"GCF of 12 and 8 is 4. Lowest power of x is x², of y is y². So GCF = 4x²y²."},
+    {type:"fill",q:"The factored form of x² + 2x + 1 is (x + _____)².",ans:"1",explain:"x²+2x+1 is a perfect square trinomial: (x+1)²."},
+  ],
+  "8-1-3": [
+    {type:"mc",q:"In which quadrant is the point (−3, 5) located?",choices:["Quadrant I","Quadrant II","Quadrant III","Quadrant IV"],ans:1,explain:"(−,+) coordinates place a point in Quadrant II."},
+    {type:"mc",q:"What is the distance between (1, 2) and (4, 6)?",choices:["5","7","√7","3"],ans:0,explain:"d = √((4−1)²+(6−2)²) = √(9+16) = √25 = 5."},
+    {type:"fill",q:"The point where the x-axis and y-axis intersect is called the _____.",ans:"origin",explain:"The origin is at coordinates (0, 0)."},
+  ],
+  "8-1-4": [
+    {type:"mc",q:"What is the slope of the line passing through (2, 3) and (6, 7)?",choices:["1","2","1/2","4"],ans:0,explain:"m = (7−3)/(6−2) = 4/4 = 1."},
+    {type:"mc",q:"What is the y-intercept of y = 3x − 5?",choices:["3","−5","5","−3"],ans:1,explain:"In y = mx + b, b is the y-intercept. Here b = −5."},
+    {type:"fill",q:"A line with slope 0 is a _____ line.",ans:"horizontal",explain:"Slope 0 means no rise, so the line is perfectly horizontal."},
+  ],
+  "9-1-1": [
+    {type:"mc",q:"What are the solutions of x² − 5x + 6 = 0?",choices:["x = 2 and x = 3","x = −2 and x = −3","x = 1 and x = 6","x = −1 and x = −6"],ans:0,explain:"Factor: (x−2)(x−3) = 0. So x = 2 or x = 3."},
+    {type:"mc",q:"Using the quadratic formula for 2x² + 3x − 2 = 0, what are the solutions?",choices:["x = 1/2 and x = −2","x = 2 and x = −1/2","x = −1/2 and x = 2","x = 1 and x = −2"],ans:0,explain:"a=2,b=3,c=−2. D=9+16=25. x=(−3±5)/4. So x=1/2 or x=−2."},
+    {type:"fill",q:"To solve x² = 49, take the _____ root of both sides.",ans:"square",explain:"x² = 49 → x = ±√49 = ±7."},
+  ],
+  "9-1-2": [
+    {type:"mc",q:"What does the discriminant D = b² − 4ac tell us when D > 0?",choices:["No real roots","Exactly one real root","Two distinct real roots","The roots are complex"],ans:2,explain:"When D > 0, the quadratic has two distinct real roots."},
+    {type:"mc",q:"For x² + 4x + 4 = 0, what is the discriminant?",choices:["0","16","−16","8"],ans:0,explain:"D = 4² − 4(1)(4) = 16 − 16 = 0. One repeated root."},
+    {type:"fill",q:"The discriminant of ax²+bx+c=0 is b² − _____.",ans:"4ac",explain:"The discriminant formula is D = b² − 4ac."},
+  ],
+  "9-1-5": [
+    {type:"mc",q:"For f(x) = 2x² − 4x + 1, what is the x-coordinate of the vertex?",choices:["1","2","−1","−2"],ans:0,explain:"x = −b/2a = −(−4)/(2×2) = 4/4 = 1."},
+    {type:"mc",q:"If a > 0 in f(x) = ax² + bx + c, the parabola opens:",choices:["Downward","Upward","Left","Right"],ans:1,explain:"A positive leading coefficient means the parabola opens upward (minimum vertex)."},
+    {type:"fill",q:"The vertex form of a quadratic function is f(x) = a(x−h)² + _____.",ans:"k",explain:"Vertex form f(x) = a(x−h)²+k has vertex at (h, k)."},
+  ],
+  "9-2-1": [
+    {type:"mc",q:"If y varies directly as x and y = 12 when x = 4, what is y when x = 7?",choices:["21","3","28","84"],ans:0,explain:"k = y/x = 12/4 = 3. Then y = 3 × 7 = 21."},
+    {type:"mc",q:"Which equation represents inverse variation?",choices:["y = 5x","y = 5/x","y = 5x²","y = x + 5"],ans:1,explain:"Inverse variation has the form y = k/x."},
+    {type:"fill",q:"In direct variation y = kx, k is called the constant of _____.",ans:"variation",explain:"k is the constant of variation (or proportionality constant)."},
+  ],
+  "10-1-1": [
+    {type:"mc",q:"In the arithmetic sequence 3, 7, 11, 15, ... what is the common difference?",choices:["3","4","7","11"],ans:1,explain:"d = 7 − 3 = 4. Each term increases by 4."},
+    {type:"mc",q:"What is the 10th term of the arithmetic sequence 2, 5, 8, 11, ...?",choices:["29","26","32","20"],ans:0,explain:"aₙ = a₁ + (n−1)d = 2 + (9)(3) = 2 + 27 = 29."},
+    {type:"fill",q:"An arithmetic sequence has a constant _____ between consecutive terms.",ans:"difference",explain:"The common difference d is what you add to get from one term to the next."},
+  ],
+  "10-1-3": [
+    {type:"mc",q:"What is the common ratio of the geometric sequence 3, 6, 12, 24, ...?",choices:["2","3","6","1/2"],ans:0,explain:"r = 6/3 = 2. Each term is multiplied by 2."},
+    {type:"mc",q:"What is the 5th term of the geometric sequence 2, 6, 18, ...?",choices:["162","54","486","108"],ans:0,explain:"aₙ = a₁ × rⁿ⁻¹ = 2 × 3⁴ = 2 × 81 = 162."},
+    {type:"fill",q:"A geometric sequence has a constant _____ between consecutive terms.",ans:"ratio",explain:"The common ratio r is what you multiply to get from one term to the next."},
+  ],
+  "10-1-6": [
+    {type:"mc",q:"By the remainder theorem, what is the remainder when p(x) = x³ − 2x + 1 is divided by (x − 1)?",choices:["0","1","−2","2"],ans:0,explain:"p(1) = 1 − 2 + 1 = 0. So the remainder is 0."},
+    {type:"mc",q:"If p(2) = 0 for polynomial p(x), then which is a factor of p(x)?",choices:["(x + 2)","(x − 2)","(x × 2)","(x² − 2)"],ans:1,explain:"By the factor theorem, if p(c) = 0 then (x − c) is a factor. Here c = 2."},
+    {type:"fill",q:"The factor theorem states that (x − c) is a factor of p(x) if and only if p(c) = _____.",ans:"0",explain:"If substituting x = c gives zero, then (x − c) divides p(x) evenly."},
+  ],
+  "10-2-3": [
+    {type:"mc",q:"A central angle of 80° intercepts an arc. What is the measure of that arc?",choices:["40°","80°","160°","20°"],ans:1,explain:"A central angle equals its intercepted arc. Arc = 80°."},
+    {type:"mc",q:"An inscribed angle intercepts an arc of 100°. What is the measure of the inscribed angle?",choices:["100°","200°","50°","25°"],ans:2,explain:"Inscribed angle = ½ × intercepted arc = ½ × 100° = 50°."},
+    {type:"fill",q:"An inscribed angle is _____ the measure of its intercepted arc.",ans:"half",explain:"The inscribed angle theorem: inscribed angle = ½ × arc."},
+  ],
+  "10-2-6": [
+    {type:"mc",q:"What is the distance between (0, 0) and (3, 4)?",choices:["5","7","√7","1"],ans:0,explain:"d = √(3²+4²) = √(9+16) = √25 = 5."},
+    {type:"mc",q:"What is the midpoint of (2, 4) and (8, 10)?",choices:["(5, 7)","(6, 7)","(5, 6)","(3, 5)"],ans:0,explain:"M = ((2+8)/2, (4+10)/2) = (5, 7)."},
+    {type:"fill",q:"The midpoint of a segment with endpoints (x₁,y₁) and (x₂,y₂) has x-coordinate (x₁+x₂) / _____.",ans:"2",explain:"Midpoint x = (x₁+x₂)/2 — the average of the two x-coordinates."},
+  ],
+  "10-2-7": [
+    {type:"mc",q:"What is the equation of a circle with center (0, 0) and radius 5?",choices:["x² + y² = 5","x² + y² = 25","(x+5)² + y² = 0","x² + y² = 10"],ans:1,explain:"Center (0,0), r=5: x² + y² = r² = 25."},
+    {type:"mc",q:"What is the center of the circle (x − 3)² + (y + 2)² = 16?",choices:["(3, −2)","(−3, 2)","(3, 2)","(−3, −2)"],ans:0,explain:"Standard form (x−h)²+(y−k)²=r² gives center (h,k) = (3, −2)."},
+    {type:"fill",q:"For a circle (x−h)²+(y−k)²=r², the radius is _____.",ans:"r",explain:"r is the radius. The value r² appears on the right side, so r = √(right side)."},
+  ],
+};
+
+// Default questions for topics without a specific bank
+function getDefaultQuestions(topic) {
+  return [
+    {type:"mc",q:`Which of the following best describes "${topic.title}"?`,choices:["A method for solving equations","A set of mathematical rules and patterns","A type of number system","A geometric measurement technique"],ans:1,explain:`${topic.title} is a core topic in Grade ${topic.g} mathematics.`},
+    {type:"fill",q:`${topic.title} is covered in Grade _____ mathematics.`,ans:String(topic.g),explain:`This topic is part of the Grade ${topic.g} curriculum.`},
+  ];
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────
+const STATE_KEY = 'mathdeck_v2';
+
+function defaultState() {
+  const now = Date.now();
+  const topics = {};
+  MODULES_RAW.forEach(m => {
+    const id = `${m.g}-${m.q}-${m.m}`;
+    topics[id] = {
+      id, grade: m.g, quarter: m.q, module: m.m,
+      title: m.title, concept: m.concept,
+      mastery: 0, timesReviewed: 0,
+      lastReviewed: null, nextDue: now,
+      intervalDays: 1, easeFactor: 2.5,
+    };
+  });
+  return { topics, mistakes: [], totalAnswered: 0, streak: 0, lastStudyDate: null };
+}
+
+let state = defaultState();
+
+function getTopicKey(t) { return `${t.grade}-${t.quarter}-${t.module}`; }
+
+// ─── SM-2 ─────────────────────────────────────────────────────────
+function applyReview(topicId, rating, correct) {
+  const t = state.topics[topicId];
+  if (!t) return;
+  const now = Date.now();
+  t.timesReviewed++;
+  t.lastReviewed = now;
+
+  // Update mastery
+  if (correct) { t.mastery = Math.min(100, t.mastery + 12); }
+  else { t.mastery = Math.max(0, t.mastery - 8); }
+
+  // SM-2 interval
+  if (rating === 'easy') {
+    t.intervalDays = Math.min(30, Math.round(t.intervalDays * t.easeFactor));
+    t.easeFactor = Math.min(3.0, t.easeFactor + 0.1);
+  } else if (rating === 'ok') {
+    t.intervalDays = Math.min(30, Math.round(t.intervalDays * t.easeFactor));
+  } else {
+    t.intervalDays = 1;
+    t.easeFactor = Math.max(1.3, t.easeFactor - 0.2);
+  }
+  t.nextDue = now + t.intervalDays * 86400000;
+
+  // Streak
+  const today = new Date().toDateString();
+  if (state.lastStudyDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    state.streak = state.lastStudyDate === yesterday ? state.streak + 1 : 1;
+    state.lastStudyDate = today;
+  }
+  saveState();
+}
+
+// ─── SESSION ──────────────────────────────────────────────────────
+let session = { queue: [], idx: 0, qIdx: 0, results: [], answered: false, timer: null };
+
+function getDueTopics() {
+  const now = Date.now();
+  return Object.values(state.topics)
+    .filter(t => t.nextDue <= now)
+    .sort((a,b) => a.nextDue - b.nextDue);
+}
+
+function startSession() {
+  const due = getDueTopics();
+  if (due.length === 0) {
+    showScreen('dashboard');
+    renderDashboard();
+    alert('No topics due right now! Come back later or check All Topics.');
+    return;
+  }
+  const pick = due.slice(0, 5);
+  session = { queue: pick, idx: 0, qIdx: 0, results: [], answered: false, timer: null };
+  showScreen('session');
+  renderQuestion();
+}
+
+function getQuestions(topic) {
+  const key = getTopicKey(topic);
+  return QUESTIONS[key] || getDefaultQuestions(topic);
+}
+
+let timerInterval = null;
+let timerSeconds = 0;
+
+function renderQuestion() {
+  if (session.idx >= session.queue.length) { showSummary(); return; }
+  const topic = session.queue[session.idx];
+  const qs = getQuestions(topic);
+  if (session.qIdx >= qs.length) {
+    session.idx++;
+    session.qIdx = 0;
+    renderQuestion();
+    return;
+  }
+  const q = qs[session.qIdx];
+  const totalQ = session.queue.reduce((s, t) => s + getQuestions(t).length, 0);
+  const doneQ = session.queue.slice(0, session.idx).reduce((s,t) => s + getQuestions(t).length, 0) + session.qIdx;
+
+  document.getElementById('q-progress').textContent = `Question ${doneQ+1} of ${totalQ}`;
+  document.getElementById('q-topic-tag').textContent = `G${topic.grade} Q${topic.quarter} M${topic.module}: ${topic.title}`;
+
+  // Concept on first question of each topic
+  const cbox = document.getElementById('concept-box');
+  if (session.qIdx === 0) {
+    document.getElementById('concept-text').textContent = topic.concept;
+    cbox.style.display = 'block';
+  } else {
+    cbox.style.display = 'none';
+  }
+
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-feedback').style.display = 'none';
+  session.answered = false;
+
+  const choicesEl = document.getElementById('q-choices');
+  choicesEl.innerHTML = '';
+
+  if (q.type === 'mc') {
+    q.choices.forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'choice';
+      div.textContent = `${['A','B','C','D'][i]}. ${c}`;
+      div.onclick = () => selectChoice(i, q, div);
+      choicesEl.appendChild(div);
+    });
+  } else {
+    choicesEl.innerHTML = `<input class="fill-input" id="fill-ans" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')submitFill(event)">`;
+  }
+
+  const actions = document.getElementById('q-actions');
+  if (q.type === 'fill') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="submitFill()">Submit</button>`;
+  } else {
+    actions.innerHTML = '';
+  }
+
+  // Timer
+  clearInterval(timerInterval);
+  timerSeconds = 60;
+  const timerEl = document.getElementById('q-timer');
+  timerEl.textContent = '⏱ 60s';
+  timerEl.className = 'timer';
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    timerEl.textContent = `⏱ ${timerSeconds}s`;
+    if (timerSeconds <= 10) timerEl.className = 'timer urgent';
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      if (!session.answered) {
+        showFeedback(false, q, null);
+      }
+    }
+  }, 1000);
+
+  state.totalAnswered++;
+}
+
+function selectChoice(idx, q, el) {
+  if (session.answered) return;
+  session.answered = true;
+  clearInterval(timerInterval);
+  const correct = idx === q.ans;
+  document.querySelectorAll('.choice').forEach((c, i) => {
+    c.classList.add('disabled');
+    if (i === q.ans) c.classList.add('correct');
+    else if (i === idx && !correct) c.classList.add('wrong');
+  });
+  showFeedback(correct, q, null);
+}
+
+function submitFill() {
+  if (session.answered) return;
+  const input = document.getElementById('fill-ans');
+  if (!input) return;
+  const val = input.value.trim().toLowerCase();
+  const topic = session.queue[session.idx];
+  const q = getQuestions(topic)[session.qIdx];
+  const correct = val === q.ans.toLowerCase();
+  session.answered = true;
+  clearInterval(timerInterval);
+  input.disabled = true;
+  showFeedback(correct, q, val);
+}
+
+function showFeedback(correct, q, userAns) {
+  const topic = session.queue[session.idx];
+  const fb = document.getElementById('q-feedback');
+  fb.style.display = 'block';
+  fb.className = `feedback-box ${correct ? 'feedback-correct' : 'feedback-wrong'}`;
+  fb.innerHTML = `<strong>${correct ? '✅ Correct!' : '❌ Incorrect'}</strong><div class="explain-text">${q.explain}</div>`;
+
+  if (!correct) {
+    state.mistakes.push({
+      date: new Date().toLocaleDateString(),
+      topic: topic.title,
+      grade: topic.grade,
+      q: q.q,
+      mine: userAns || (q.type === 'mc' ? 'No answer' : 'No answer'),
+      correct: q.type === 'mc' ? q.choices[q.ans] : q.ans,
+    });
+  }
+
+  session.results.push({ topicId: topic.id, correct });
+
+  const actions = document.getElementById('q-actions');
+  actions.innerHTML = `
+    <div style="width:100%">
+      <div class="rating-prompt">How hard was this?</div>
+      <div class="btn-row">
+        <button class="btn btn-easy" onclick="rateAndNext('easy',${correct})">😊 Easy</button>
+        <button class="btn btn-ok" onclick="rateAndNext('ok',${correct})">🙂 OK</button>
+        <button class="btn btn-hard" onclick="rateAndNext('hard',${correct})">😓 Hard</button>
+      </div>
+    </div>`;
+}
+
+function rateAndNext(rating, correct) {
+  const topic = session.queue[session.idx];
+  applyReview(topic.id, rating, correct);
+  session.qIdx++;
+  renderQuestion();
+}
+
+function showSummary() {
+  clearInterval(timerInterval);
+  showScreen('summary');
+  const topicsReviewed = [...new Set(session.results.map(r => r.topicId))];
+  const correct = session.results.filter(r => r.correct).length;
+  const total = session.results.length;
+  document.getElementById('summary-sub').textContent = `${correct}/${total} correct across ${topicsReviewed.length} topic(s)`;
+
+  const list = document.getElementById('summary-list');
+  list.innerHTML = topicsReviewed.map(id => {
+    const t = state.topics[id];
+    const topicResults = session.results.filter(r => r.topicId === id);
+    const tc = topicResults.filter(r => r.correct).length;
+    return `<div class="summary-item">
+      <span>${t.title} <span style="font-size:12px;color:var(--muted)">G${t.grade}</span></span>
+      <span style="color:${t.mastery>=80?'var(--green)':t.mastery>=50?'var(--accent2)':'var(--red)'}; font-weight:600">${t.mastery}% mastery</span>
+    </div>`;
+  }).join('') + `<div class="summary-item"><span>Next review in</span><span style="color:var(--accent2)">${getNextDueLabel()}</span></div>`;
+
+  saveState();
+  renderDashboard();
+  document.getElementById('streak-display').textContent = `${state.streak} 🔥`;
+}
+
+function getNextDueLabel() {
+  const due = getDueTopics();
+  if (due.length > 0) return 'Now!';
+  const next = Object.values(state.topics).sort((a,b) => a.nextDue - b.nextDue)[0];
+  if (!next) return '—';
+  const days = Math.ceil((next.nextDue - Date.now()) / 86400000);
+  return days <= 1 ? 'Tomorrow' : `${days} days`;
+}
+
+// ─── RENDER FUNCTIONS ────────────────────────────────────────────
+function renderDashboard() {
+  const now = Date.now();
+  const topics = Object.values(state.topics);
+  const due = topics.filter(t => t.nextDue <= now);
+  const mastered = topics.filter(t => t.mastery >= 80);
+  const weak = topics.filter(t => t.mastery < 50 && t.timesReviewed > 0);
+
+  document.getElementById('stat-due').textContent = due.length;
+  document.getElementById('stat-mastered').textContent = mastered.length;
+  document.getElementById('stat-total-q').textContent = state.totalAnswered;
+  document.getElementById('stat-weak').textContent = weak.length;
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('streak-display').textContent = `${state.streak} 🔥`;
+
+  const dueList = document.getElementById('dash-due-list');
+  if (due.length === 0) {
+    dueList.innerHTML = `<div class="empty"><div class="empty-icon">🎉</div><div class="empty-title">All caught up!</div><div>No topics due right now.</div></div>`;
+  } else {
+    dueList.innerHTML = due.slice(0, 6).map(t => topicItemHTML(t, true)).join('');
+  }
+}
+
+function topicItemHTML(t, clickable=false) {
+  const now = Date.now();
+  const isOverdue = t.nextDue < now - 86400000;
+  const isDue = t.nextDue <= now;
+  const cls = isDue ? (isOverdue ? 'overdue' : 'due') : '';
+  const daysUntil = Math.ceil((t.nextDue - now) / 86400000);
+  const dueLabel = isDue ? (isOverdue ? '⚠ Overdue' : 'Due now') : `in ${daysUntil}d`;
+  const barW = t.mastery;
+  const barColor = t.mastery >= 80 ? 'var(--green)' : t.mastery >= 50 ? 'var(--accent)' : 'var(--red)';
+  return `<div class="topic-item ${cls}" ${clickable ? `onclick="startTopicSession('${t.id}')"` : ''}>
+    <span class="topic-grade g${t.grade}">G${t.grade}</span>
+    <div class="topic-info">
+      <div class="topic-name">${t.title}</div>
+      <div class="topic-meta">Q${t.quarter} M${t.module} · ${dueLabel}</div>
+    </div>
+    <div class="topic-mastery">
+      <div class="mastery-pct" style="color:${barColor}">${t.mastery}%</div>
+      <div class="mastery-bar-bg"><div class="mastery-bar" style="width:${barW}%;background:${barColor}"></div></div>
+    </div>
+  </div>`;
+}
+
+function startTopicSession(topicId) {
+  const topic = state.topics[topicId];
+  if (!topic) return;
+  session = { queue: [topic], idx: 0, qIdx: 0, results: [], answered: false };
+  showScreen('session');
+  renderQuestion();
+}
+
+function renderTopics(grade='all') {
+  const list = document.getElementById('topic-list');
+  const topics = Object.values(state.topics).filter(t => grade === 'all' || String(t.grade) === grade);
+  list.innerHTML = topics.map(t => topicItemHTML(t, true)).join('');
+}
+
+function filterTopics(grade, el) {
+  document.querySelectorAll('#grade-tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTopics(grade);
+}
+
+function renderMistakes() {
+  const el = document.getElementById('mistakes-list');
+  if (state.mistakes.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><div class="empty-title">No mistakes yet!</div><div>Your wrong answers will appear here.</div></div>`;
+    return;
+  }
+  el.innerHTML = [...state.mistakes].reverse().map(m => `
+    <div class="mistake-item">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${m.date} · G${m.grade} · ${m.topic}</div>
+      <div class="mistake-q">${m.q}</div>
+      <div class="mistake-row">
+        <span class="my-ans">❌ Mine: ${m.mine}</span>
+        <span class="correct-ans">✅ Correct: ${m.correct}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderProgress(grade='all') {
+  const el = document.getElementById('progress-list');
+  const topics = Object.values(state.topics)
+    .filter(t => grade === 'all' || String(t.grade) === grade)
+    .sort((a,b) => b.mastery - a.mastery);
+  const barColor = m => m >= 80 ? 'var(--green)' : m >= 50 ? 'var(--accent)' : m > 0 ? 'var(--amber)' : 'var(--surface2)';
+  el.innerHTML = topics.map(t => `
+    <div class="prog-row">
+      <div class="prog-label" title="${t.title}">${t.title}</div>
+      <div class="prog-track"><div class="prog-fill" style="width:${t.mastery}%;background:${barColor(t.mastery)}"></div></div>
+      <div class="prog-pct" style="color:${barColor(t.mastery)}">${t.mastery}%</div>
+    </div>`).join('');
+}
+
+function filterProgress(grade, el) {
+  document.querySelectorAll('#screen-progress .tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderProgress(grade);
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  const map = {dashboard:0, topics:1, mistakes:3, progress:4};
+  const items = document.querySelectorAll('.nav-item');
+  if (map[name] !== undefined) items[map[name]].classList.add('active');
+
+  if (name === 'topics') renderTopics();
+  if (name === 'mistakes') renderMistakes();
+  if (name === 'progress') renderProgress();
+  if (name === 'dashboard') renderDashboard();
+}
+
+// ─── SAVE / EXPORT / IMPORT ──────────────────────────────────────
+function exportSave() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `mathdeck-save-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importSave(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.topics) throw new Error('Invalid save file');
+      Object.keys(imported.topics).forEach(id => {
+        if (state.topics[id]) {
+          const imp = imported.topics[id];
+          state.topics[id].mastery = imp.mastery ?? 0;
+          state.topics[id].timesReviewed = imp.timesReviewed ?? 0;
+          state.topics[id].lastReviewed = imp.lastReviewed ?? null;
+          state.topics[id].nextDue = imp.nextDue ?? Date.now();
+          state.topics[id].intervalDays = imp.intervalDays ?? 1;
+          state.topics[id].easeFactor = imp.easeFactor ?? 2.5;
+        }
+      });
+      state.mistakes = imported.mistakes ?? [];
+      state.totalAnswered = imported.totalAnswered ?? 0;
+      state.streak = imported.streak ?? 0;
+      state.lastStudyDate = imported.lastStudyDate ?? null;
+      saveState();
+      renderDashboard();
+      showScreen('dashboard');
+      alert('Save imported successfully!');
+    } catch(err) {
+      alert('Could not read save file. Make sure it is a valid MathDeck export.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function confirmReset() {
+  if (confirm('Reset ALL progress? This cannot be undone.\n\nTip: Export your save first!')) {
+    state = defaultState();
+    saveState();
+    renderDashboard();
+    showScreen('dashboard');
+    alert('Progress reset.');
+  }
+}
+
+// ─── SUPABASE CONFIG ─────────────────────────────────────────────
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── AUTH HELPERS ─────────────────────────────────────────────────
+function showLogin() {
+  document.getElementById('auth-login-form').style.display = '';
+  document.getElementById('auth-signup-form').style.display = 'none';
+  clearAuthMessages();
+}
+function showSignup() {
+  document.getElementById('auth-login-form').style.display = 'none';
+  document.getElementById('auth-signup-form').style.display = '';
+  clearAuthMessages();
+}
+function clearAuthMessages() {
+  const e = document.getElementById('auth-error');
+  const i = document.getElementById('auth-info');
+  e.style.display = 'none'; e.textContent = '';
+  i.style.display = 'none'; i.textContent = '';
+}
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+function showAuthInfo(msg) {
+  const el = document.getElementById('auth-info');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function authLogin() {
+  clearAuthMessages();
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  if (!email || !pass) return showAuthError('Please enter email and password.');
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) showAuthError(error.message);
+}
+
+async function authSignup() {
+  clearAuthMessages();
+  const email = document.getElementById('auth-email2').value.trim();
+  const pass  = document.getElementById('auth-pass2').value;
+  if (!email || !pass) return showAuthError('Please enter email and password.');
+  if (pass.length < 6) return showAuthError('Password must be at least 6 characters.');
+  const { error } = await sb.auth.signUp({ email, password: pass });
+  if (error) showAuthError(error.message);
+  else showAuthInfo('Account created! Check your email to confirm, then log in.');
+}
+
+async function authLogout() {
+  await sb.auth.signOut();
+}
+
+// ─── CLOUD SAVE / LOAD ────────────────────────────────────────────
+function setSyncIndicator(msg) {
+  const el = document.getElementById('sync-indicator');
+  if (el) el.textContent = msg;
+}
+
+async function saveState() {
+  localStorage.setItem('mathdeck', JSON.stringify(state));
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  setSyncIndicator('Saving…');
+  const { error } = await sb.from('user_progress').upsert({
+    user_id: user.id,
+    progress: state,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
+  setSyncIndicator(error ? '⚠ Save failed' : '✓ Synced');
+  setTimeout(() => setSyncIndicator(''), 2500);
+}
+
+async function loadState() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  const { data } = await sb.from('user_progress')
+    .select('progress')
+    .eq('user_id', user.id)
+    .single();
+  if (data?.progress) {
+    const cloud = data.progress;
+    Object.keys(cloud.topics || {}).forEach(id => {
+      if (state.topics[id]) Object.assign(state.topics[id], cloud.topics[id]);
+    });
+    state.mistakes      = cloud.mistakes      ?? [];
+    state.totalAnswered = cloud.totalAnswered ?? 0;
+    state.streak        = cloud.streak        ?? 0;
+    state.lastStudyDate = cloud.lastStudyDate ?? null;
+  }
+}
+
+// ─── AUTH STATE LISTENER ──────────────────────────────────────────
+sb.auth.onAuthStateChange(async (event, session) => {
+  const allScreens = document.querySelectorAll('.screen');
+  if (session?.user) {
+    state = defaultState();
+    setSyncIndicator('Loading…');
+    await loadState();
+    setSyncIndicator('');
+    allScreens.forEach(s => s.classList.remove('active'));
+    renderDashboard();
+    document.getElementById('screen-dashboard').classList.add('active');
+    const badge = document.getElementById('user-badge');
+    if (badge) badge.textContent = session.user.email;
+  } else {
+    allScreens.forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-auth').classList.add('active');
+    const badge = document.getElementById('user-badge');
+    if (badge) badge.textContent = '';
+  }
+});
+
+
+</script>
+</body>
+</html>
